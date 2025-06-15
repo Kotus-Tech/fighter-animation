@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Random Punch & Kick Animations</title>
+  <style> body { margin: 0; overflow: hidden; } canvas { display: block; } </style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<script>
+  let scene, camera, renderer, clock, mixer;
+  let currentModel;
+  const animations = [
+    { url: 'punch.glb' }, // Replace with your punch animation model URL
+    { url: 'kick.glb' }   // Replace with your kick animation model URL
+  ];
+
+  init();
+  loadAndPlayRandom();
+
+  function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xdddddd);
+
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 1.6, 3);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    clock = new THREE.Clock();
+
+    const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+    light.position.set(0, 20, 0);
+    scene.add(light);
+  }
+
+  function loadAndPlayRandom() {
+    const anim = animations[Math.floor(Math.random() * animations.length)];
+
+    if (currentModel) {
+      scene.remove(currentModel);
+      mixer = null;
+      currentModel = null;
+    }
+
+    const loader = new THREE.GLTFLoader();
+    loader.load(anim.url, function(gltf) {
+      currentModel = gltf.scene;
+      scene.add(currentModel);
+
+      mixer = new THREE.AnimationMixer(currentModel);
+      const action = mixer.clipAction(gltf.animations[0]);
+      action.reset();
+      action.play();
+
+      action.getClip().duration; // animation duration in seconds
+
+      // When animation ends, load another randomly
+      mixer.addEventListener('finished', () => {
+        loadAndPlayRandom();
+      });
+    });
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    const delta = clock.getDelta();
+    if (mixer) mixer.update(delta);
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+</body>
+</html>
